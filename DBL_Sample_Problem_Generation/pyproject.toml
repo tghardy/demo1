@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dbl-sample-problem-generation"
+version = "0.2.0"
+description = "Minimal scaffold for DBL traversal sampling and LangChain practice generation"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "langchain>=0.3.0",
+    "langchain-core>=0.3.0",
+    "langgraph>=0.2.0",
+    "langchain-ollama>=0.2.0",
+    "langchain-openai>=0.2.0",
+    "neo4j>=5.0.0",
+    "python-dotenv>=1.0.0",
+    "streamlit>=1.36.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["dbl_problem_generator*", "dbl_student_rag*"]
