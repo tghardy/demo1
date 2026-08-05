@@ -20,7 +20,8 @@ AUTH = (USERNAME, PASSWORD)
 OLLAMA_HOST = "https://ollama.com"
 API_KEY = st.secrets["OLLAMA_API_KEY"]
 
-llm = ChatOllama(model="gemma4:31b", base_url=OLLAMA_HOST, headers={
+# Note: Make sure to use a tool-compatible model here (like llama3.1)
+llm = ChatOllama(model="llama3.1", base_url=OLLAMA_HOST, headers={
     "Authorization": f'Bearer {API_KEY}',
     "Content-Type": "application/json"
 })
@@ -31,38 +32,37 @@ def get_driver():
     return GraphDatabase.driver(URI, auth=AUTH)
 
 driver = get_driver()
-# Initialize your generator once
 g = OneShotGenerator(llm, driver)
 
-# 5. Cache Graph Data (Prevents querying on every UI click)
+# 4. Cache Graph Data
 @st.cache_data
 def get_graph_data():
     with driver.session() as session:
-        result = session.run("MATCH (n)-[r]->(m) RETURN n, r, m LIMIT 100")
         nodes = {}
         edges = []
 
-        for record in result:
-            n, m, r = record["n"], record["m"], record["r"]
-            
-            n_content = n.get("content", "")
-            m_content = m.get("content", "")
-            
-            if n_content == "NULL" or m_content == "NULL":
+        # Fetch ALL nodes first (even if they have no connections)
+        node_result = session.run("MATCH (n) RETURN n LIMIT 100")
+        for record in node_result:
+            n = record["n"]
+            if n.get("content", "") == "NULL":
                 continue 
-
+            
             n_id = n.get("id", str(n.element_id))
-            m_id = m.get("id", str(m.element_id))
-
             nodes[n_id] = {
                 "label": list(n.labels)[0] if n.labels else "Node",
                 "properties": dict(n),
             }
-            nodes[m_id] = {
-                "label": list(m.labels)[0] if m.labels else "Node",
-                "properties": dict(m),
-            }
 
+        # Fetch only the relationships
+        edge_result = session.run("MATCH (n)-[r]->(m) RETURN n, r, m LIMIT 100")
+        for record in edge_result:
+            n, m, r = record["n"], record["m"], record["r"]
+            if n.get("content", "") == "NULL" or m.get("content", "") == "NULL":
+                continue 
+            
+            n_id = n.get("id", str(n.element_id))
+            m_id = m.get("id", str(m.element_id))
             edges.append((n_id, m_id, r.get("content", "")))
 
     return nodes, edges
@@ -110,19 +110,14 @@ def create_agraph(nodes_dict, edges_list):
     )
     return nodes, edges, config
 
-
-# 4. Prompt Generation Input
+# 5. Prompt Generation Input
 prompt = st.text_input("Enter in instructions for graph generation...")
 if st.button("Generate Graph Schema") and prompt:
     with st.spinner("Generating..."):
         g.generate_graph(prompt)
         st.success("Graph generated successfully!")
-        
-        # --- NEW CODE TO FIX THE DISPLAY ---
-        get_graph_data.clear()  # Purge the old cached (empty) graph
-st.rerun()              # Force the app to refresh and draw the new graph
-
-
+        get_graph_data.clear() 
+        st.rerun()              
 
 # -------------------------------------------------------------------
 # State Management
@@ -149,6 +144,8 @@ if nodes_data:
             if clicked_node_id not in st.session_state.current_group:
                 st.session_state.current_group.append(clicked_node_id)
                 st.rerun()
+else:
+    st.info("No nodes found in the database. Try generating a graph schema above!")
 
 st.divider()
 
@@ -217,7 +214,6 @@ if st.session_state.generated_problem:
     st.markdown(st.session_state.generated_problem)
     answer = st.text_input("Enter your answer to the question...")
     
-    # ADDED BUTTON HERE: Prevents re-grading on every keystroke
     if answer and st.button("Submit Answer"):
         with st.spinner("Grading response..."):
             responses = g.grade_response(
