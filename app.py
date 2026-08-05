@@ -120,7 +120,7 @@ if st.button("Generate Graph Schema") and prompt:
         
         # --- NEW CODE TO FIX THE DISPLAY ---
         get_graph_data.clear()  # Purge the old cached (empty) graph
-st.rerun()              # Force the app to refresh and draw the new graph
+        st.rerun()              # Force the app to refresh and draw the new graph
 
 
 
