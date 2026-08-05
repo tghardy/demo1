@@ -20,7 +20,7 @@ AUTH = (USERNAME, PASSWORD)
 OLLAMA_HOST = "https://ollama.com"
 API_KEY = st.secrets["OLLAMA_API_KEY"]
 
-llm = ChatOllama(model="glm-5.2", base_url=OLLAMA_HOST, headers={
+llm = ChatOllama(model="gemma4:31b", base_url=OLLAMA_HOST, headers={
     "Authorization": f'Bearer {API_KEY}',
     "Content-Type": "application/json"
 })
