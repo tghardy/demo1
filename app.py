@@ -9,8 +9,8 @@ import textwrap
 
 load_dotenv()
 URI = st.secrets["NEO4J_URI"]
-USERNAME = st.secrets["NEO4J_USERNAME", "neo4j"]
-PASSWORD = st.secrets["NEO4J_PASSWORD", "<YOUR_PASSWORD>"]
+USERNAME = st.secrets["NEO4J_USERNAME"]
+PASSWORD = st.secrets["NEO4J_PASSWORD"]
 AUTH = (USERNAME, PASSWORD)
 OLLAMA_HOST = "https://ollama.com"
 API_KEY = st.secrets["OLLAMA_API_KEY"]
