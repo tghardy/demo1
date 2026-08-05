@@ -8,12 +8,12 @@ from streamlit_agraph import Config, Edge, Node, agraph
 import textwrap
 
 load_dotenv()
-URI = os.getenv("NEO4J_URI", "neo4j+s://<YOUR_DB_ID>.databases.neo4j.io")
-USERNAME = os.getenv("NEO4J_USERNAME", "neo4j")
-PASSWORD = os.getenv("NEO4J_PASSWORD", "<YOUR_PASSWORD>")
+URI = st.secrets["NEO4J_URI"]
+USERNAME = st.secrets["NEO4J_USERNAME", "neo4j"]
+PASSWORD = st.secrets["NEO4J_PASSWORD", "<YOUR_PASSWORD>"]
 AUTH = (USERNAME, PASSWORD)
 OLLAMA_HOST = "https://ollama.com"
-API_KEY = os.getenv("OLLAMA_API_KEY")
+API_KEY = st.secrets["OLLAMA_API_KEY"]
 
 llm = ChatOllama(model="glm-5.2", base_url=OLLAMA_HOST, headers={
     "Authorization": f'Bearer {API_KEY}',
