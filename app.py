@@ -21,7 +21,7 @@ OLLAMA_HOST = "https://ollama.com"
 API_KEY = st.secrets["OLLAMA_API_KEY"]
 
 # Note: Make sure to use a tool-compatible model here (like llama3.1)
-llm = ChatOllama(model="deepseek-v4-pro", base_url=OLLAMA_HOST, headers={
+llm = ChatOllama(model="gemma4:31b", base_url=OLLAMA_HOST, headers={
     "Authorization": f'Bearer {API_KEY}',
     "Content-Type": "application/json"
 })
