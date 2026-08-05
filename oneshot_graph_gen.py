@@ -181,7 +181,7 @@ For a statistics topic, a branch might ask: “What kind of outcome is being exp
         generate_relation = self._generate_rel_tool()
         llm_tools = self.llm.bind_tools([generate_node, generate_relation])
 
-        prompt = SystemMessage(f"""
+        prompt = HumanMessage(f"""
                     Generate a knowledge graph using the following specs given by a colleague. 
                     Use the generate_node and generate_relation functions in order to do this.
                     Please be exact and complete the whole graph.
