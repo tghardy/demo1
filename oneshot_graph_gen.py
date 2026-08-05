@@ -69,7 +69,6 @@ When the user asks for JSON, provide:
 - Phrase decision points as questions.
 - Phrase traits as noun phrases, not commands.
 - Relationship labels should be clear answers to questions.
-- If a requested branch would produce an action instead of a trait, rewrite it as the underlying problem characteristic.
 - Everything underneath category nodes should be separate and unconnected. E.g. nodes underneath two different categories should never lead to the same node- create multiple similar nodes if necessary.
 - Consolidate nodes whenever possible. If the logic of something depends on the state of a value, the answers to that node should be the various states (not 'yes' or 'no').
 - Ensure all nodes are connected.
