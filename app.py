@@ -280,7 +280,7 @@ if st.session_state.generated_problem:
         # Re-initialize the generator and driver to grade the response
         with GraphDatabase.driver(URI, auth=AUTH) as driver:
             g = OneShotGenerator(
-                ChatOllama(model="gemma4:31b", num_predict=-1), driver
+                llm, driver
             )
             responses = g.grade_response(
                 answer, 
