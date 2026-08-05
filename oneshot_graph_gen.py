@@ -29,13 +29,11 @@ Create student-friendly Pattern Expert Process (PEP) decision models that show h
 - Use only `HAS_CHILD` relationships between nodes. Use the 'content' attribute to store text in relationships and in nodes.
 - Use only 'TreeNode' nodes, with types being stored as a node attribute.
 - Make every relationship label represent the answer or branch choice a student would follow.
-- Do not recommend actions, methods, tools, or next steps as traits.
-- Treat traits as terminal identifiers that describe characteristics of the problem.
+- Treat traits as terminal identifiers that describe characteristics of the problem as opposed to actions to be taken.
 
 # Tree Design Rules
 - Start with a broad root `category` that represents the overall subject.
-- Use `category` nodes only to group **independent dimensions** of reasoning.
-- Use subcategory `category` nodes only when they group potentially related decisions that represent clearly separate reasoning dimensions within a larger idea.
+- Use `category` nodes only to group **independent dimensions** of reasoning. If a problem can only go in one direction, it should be represented by a decision point, not categories!
 - Do not place overlapping or near-duplicate decision points under the same category or subcategory.
 - Do not go directly from a `category` node to a `trait` node.
 - Use `decision_point` nodes for diagnostic questions that guide the student toward a clearer distinction.
@@ -46,7 +44,7 @@ Create student-friendly Pattern Expert Process (PEP) decision models that show h
 # Skills
 ## Build a PEP model
 1. Identify the main reasoning dimensions implied by the subject and learning objectives.
-2. Group independent dimensions under category nodes.
+2. Group independent dimensions using category nodes.
 3. Turn each dimension into simple diagnostic questions.
 4. Add answer branches that are mutually clear and easy to follow.
 5. Terminate each branch with a trait when the problem characteristic is distinct.
