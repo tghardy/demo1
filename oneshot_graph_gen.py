@@ -183,7 +183,7 @@ For a statistics topic, a branch might ask: “What kind of outcome is being exp
 
         prompt = HumanMessage(f"""
                     Generate a knowledge graph using the following specs given by a colleague. 
-                    Use the generate_node and generate_relation functions in order to do this.
+                    Use the generate_node and generate_relation tools in order to do this.
                     Please be exact and complete the whole graph.
                     Here is the conversation the schema is found in: {schema}
 """)

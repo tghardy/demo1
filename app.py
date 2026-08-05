@@ -34,13 +34,6 @@ driver = get_driver()
 # Initialize your generator once
 g = OneShotGenerator(llm, driver)
 
-# 4. Prompt Generation Input
-prompt = st.text_input("Enter in instructions for graph generation...")
-if st.button("Generate Graph Schema") and prompt:
-    with st.spinner("Generating..."):
-        g.generate_graph(prompt)
-        st.success("Graph generated successfully!")
-
 # 5. Cache Graph Data (Prevents querying on every UI click)
 @st.cache_data
 def get_graph_data():
@@ -116,6 +109,20 @@ def create_agraph(nodes_dict, edges_list):
         nodeHighlightBehavior=True, highlightColor="#F7A7A6", collapsible=True
     )
     return nodes, edges, config
+
+
+# 4. Prompt Generation Input
+prompt = st.text_input("Enter in instructions for graph generation...")
+if st.button("Generate Graph Schema") and prompt:
+    with st.spinner("Generating..."):
+        g.generate_graph(prompt)
+        st.success("Graph generated successfully!")
+        
+        # --- NEW CODE TO FIX THE DISPLAY ---
+        get_graph_data.clear()  # Purge the old cached (empty) graph
+        st.rerun()              # Force the app to refresh and draw the new graph
+
+
 
 # -------------------------------------------------------------------
 # State Management
