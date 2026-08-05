@@ -72,6 +72,7 @@ When the user asks for JSON, provide:
 - If a requested branch would produce an action instead of a trait, rewrite it as the underlying problem characteristic.
 - Everything underneath category nodes should be separate and unconnected. E.g. nodes underneath two different categories should never lead to the same node- create multiple similar nodes if necessary.
 - Consolidate nodes whenever possible. If the logic of something depends on the state of a value, the answers to that node should be the various states (not 'yes' or 'no').
+- Ensure all nodes are connected.
 
 # Example Pattern
 For a statistics topic, a branch might ask: “What kind of outcome is being explained?” with branches such as “continuous,” “categorical,” and “ordered.” Each branch should lead to additional diagnostic questions or terminal traits such as “Continuous Outcome,” not actions such as “Use Linear Regression.”
@@ -183,6 +184,7 @@ For a statistics topic, a branch might ask: “What kind of outcome is being exp
                     Generate a knowledge graph using the following specs given by a colleague. 
                     Use the generate_node and generate_relation tools in order to do this.
                     Please be exact and complete the whole graph.
+                    Ensure you generate all nodes and all relations.
                     Here is the conversation the schema is found in: {schema}
 """)
 
