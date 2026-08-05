@@ -73,6 +73,7 @@ When the user asks for JSON, provide:
 - Consolidate nodes whenever possible. If the logic of something depends on the state of a value, the answers to that node should be the various states (not 'yes' or 'no').
 - Ensure all nodes are connected.
 - Each node should have exactly ONE parent. Generate duplicate nodes if necessary. THIS IS CRUCIAL. Similarly, there should only exist ONE relation between a child and its parent. There should NEVER be more than one relation between nodes. NEVER BREAK THIS RULE.
+- Please, please, make sure to generate nodes AND relations between them.
 
 # Example Pattern
 For a statistics topic, a branch might ask: “What kind of outcome is being explained?” with branches such as “continuous,” “categorical,” and “ordered.” Each branch should lead to additional diagnostic questions or terminal traits such as “Continuous Outcome,” not actions such as “Use Linear Regression.”
