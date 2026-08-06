@@ -17,67 +17,6 @@ class OneShotGenerator:
         print(f"DEBUG: Schema loaded: {self.schema}")
         self.sampler = Neo4jTraversalSampler.from_environment()
         self.practice_generator = PracticeProblemGenerator(self.llm, validation_llm=self.llm)
-        self.instructions = SystemMessage("""
-# Purpose
-Create student-friendly Pattern Expert Process (PEP) decision models that show how an expert reasons through a topic. Build the model as a tree that can be converted into a Neo4j graph.
-
-# General Guidelines
-- Write for students who are learning the topic for the first time.
-- Keep language simple, concrete, and diagnostic.
-- Prefer many small, clear questions over a few vague or abstract questions.
-- Build trees with three node types only: `category`, `decision_point`, and `trait`.
-- Use only `HAS_CHILD` relationships between nodes. Use the 'content' attribute to store text in relationships and in nodes.
-- Use only 'TreeNode' nodes, with types being stored as a node attribute.
-- Make every relationship label represent the answer or branch choice a student would follow.
-- Treat traits as terminal identifiers that describe characteristics of the problem as opposed to actions to be taken.
-
-# Tree Design Rules
-- Start with a broad root `category` that represents the overall subject.
-- Use `category` nodes only to group **independent dimensions** of reasoning. If a problem can only go in one direction, it should be represented by a decision point, not categories!
-- Do not place overlapping or near-duplicate decision points under the same category or subcategory.
-- Do not go directly from a `category` node to a `trait` node.
-- Use `decision_point` nodes for diagnostic questions that guide the student toward a clearer distinction.
-- Give each `decision_point` at least two child branches when possible.
-- End a branch with a `trait` as soon as a distinct characteristic has been logically isolated.
-- Do not add children under `trait` nodes.
-
-# Skills
-## Build a PEP model
-1. Identify the main reasoning dimensions implied by the subject and learning objectives.
-2. Group independent dimensions using category nodes.
-3. Turn each dimension into simple diagnostic questions.
-4. Add answer branches that are mutually clear and easy to follow.
-5. Terminate each branch with a trait when the problem characteristic is distinct.
-
-## Validate the model
-Check the finished tree for:
-- No action-oriented traits.
-- No trait nodes with children.
-- No direct category-to-trait jumps.
-- No duplicate or overlapping decision points under the same category.
-- Clear student-facing language.
-- Relationship labels that read like answer choices.
-
-## Format the output
-When the user asks for JSON, provide:
-- A `nodes` array where every node has `id`, `content`, and `type`.
-- A `relationships` array where every relationship has `source`, `target`, and `type`.
-
-# Output Standards
-- Use stable, readable IDs such as `n1`, `n2`, `n3`.
-- Keep node content concise.
-- Phrase decision points as questions.
-- Phrase traits as noun phrases, not commands.
-- Relationship labels should be clear answers to questions.
-- Everything underneath category nodes should be separate and unconnected. E.g. nodes underneath two different categories should never lead to the same node- create multiple similar nodes if necessary.
-- Consolidate nodes whenever possible. If the logic of something depends on the state of a value, the answers to that node should be the various states (not 'yes' or 'no').
-- Ensure all nodes are connected.
-- Each node should have exactly ONE parent. Generate duplicate nodes if necessary. THIS IS CRUCIAL. Similarly, there should only exist ONE relation between a child and its parent. There should NEVER be more than one relation between nodes. NEVER BREAK THIS RULE.
-- Please, please, make sure to generate nodes AND relations between them.
-
-# Example Pattern
-For a statistics topic, a branch might ask: “What kind of outcome is being explained?” with branches such as “continuous,” “categorical,” and “ordered.” Each branch should lead to additional diagnostic questions or terminal traits such as “Continuous Outcome,” not actions such as “Use Linear Regression.”
-""")
 
     def _load_graph_data(self) -> str:
         query = """
@@ -114,12 +53,90 @@ For a statistics topic, a branch might ask: “What kind of outcome is being exp
             
         return "{}"
 
-    def _gen_json(self, prompt: str):
+    def _gen_thought_process(self, prompt: str):
+        p = SystemMessage(f"""You are a chatbot that is developing the initial thought process of a Decision Model.
+        The user will have a request to generate some sort of graph.
+        Your job is to draft an initial thought process that covers how to handle problems of this type.
+        For example, if the user asks about model selection, you would write a comprehensive summary of how to decide what model to use.
+        Only respond with your summary, and ensure it is readable by a future chatbot that will not see these instructions.
+        Here is the user's prompt:""")
+        prompt = (p, HumanMessage(prompt))
+        return self.llm.invoke(prompt).content
+
+    def _gen_json(self, prompt: str, info: str):
         """
         Generates a json knowledge graph based on a user prompt.
         """
         print("[green] Generating JSON schema...[/green]")
-        full_prompt = (HumanMessage(prompt), self.instructions)
+        instructions = SystemMessage(f"""
+# Purpose
+Create student-friendly Pattern Expert Process (PEP) decision models that show how an expert reasons through a topic. Build the model as a tree that can be converted into a Neo4j graph.
+
+# General Guidelines
+- Write for students who are learning the topic for the first time.
+- Keep language simple, concrete, and diagnostic.
+- Prefer many small, clear questions over a few vague or abstract questions.
+- Build trees with three node types only: `category`, `decision_point`, and `trait`.
+- Use only `HAS_CHILD` relationships between nodes. Use the 'content' attribute to store text in relationships and in nodes.
+- Use only 'TreeNode' nodes, with types being stored as a node attribute.
+- Make every relationship label represent the answer or branch choice a student would follow.
+- Treat traits as terminal identifiers that describe characteristics of the problem.
+
+# Tree Design Rules
+- Start with a broad root `category` that represents the overall subject.
+- Use `category` nodes only to group **independent dimensions** of reasoning.
+- Use subcategory `category` nodes only when they group potentially related decisions that represent clearly separate reasoning dimensions within a larger idea.
+- Do not place overlapping or near-duplicate decision points under the same category or subcategory.
+- Do not go directly from a `category` node to a `trait` node.
+- Use `decision_point` nodes for diagnostic questions that guide the student toward a clearer distinction.
+- Give each `decision_point` at least two child branches when possible.
+- End a branch with a `trait` as soon as a distinct characteristic has been logically isolated.
+- Do not add children under `trait` nodes.
+
+# Skill: Build a PEP Model
+## Initial JSON development
+1. Identify the main reasoning dimensions implied by the subject and learning objectives.
+2. Group independent dimensions under category nodes.
+3. Turn each dimension into simple diagnostic questions.
+4. Add answer branches that are clear and easy to follow.
+5. Terminate each branch with a trait when the problem characteristic is distinct.
+
+## Validate the model
+Check the finished tree for:
+- No trait nodes with children.
+- No direct category-to-trait jumps.
+- No duplicate or overlapping decision points under the same category.
+- Clear student-facing language.
+- Relationship labels that read like answer choices.
+- Every decision node has exactly one parent node. No overlapping.
+- Content of each node is either a category name, trait name, or a question.
+
+## Format the output
+When the user asks for JSON or a graph, provide:
+- A `nodes` array where every node has `id`, `content`, and `type`.
+- A `relationships` array where every relationship has `source`, `target`, and `type`.
+
+# Output Standards
+- Use stable, readable IDs such as `n1`, `n2`, `n3`.
+- Keep node content concise.
+- Phrase decision points as questions.
+- Phrase traits as noun phrases, not commands.
+- Relationship labels should be clear answers to questions.
+- If a requested branch would produce an action instead of a trait, rewrite it as the underlying problem characteristic.
+- Everything underneath category nodes should be separate and unconnected. E.g. nodes underneath two different categories should never lead to the same node- create multiple similar nodes if necessary.
+- Consolidate nodes whenever possible. If the logic of something depends on the state of a value, the answers to that node should be the various states (not 'yes' or 'no').
+- Use reasoning or <scratchpad> chunks to draft your model before finalizing output.
+
+# Example Pattern
+For a statistics topic, a branch might ask: “What kind of outcome is being explained?” with branches such as “continuous,” “categorical,” and “ordered.” Each branch should lead to additional diagnostic questions or terminal traits such as “Continuous Outcome,” not actions such as “Use Linear Regression.”
+
+Note that this is Stage 2 of this process. An expert has already gone through this problem and outlined some of their thoughts on this problem.
+Use these notes as you generate the graph, but feel free to deviate if necessary.
+{info}
+
+Proceed with 1. DRAFTING a graph in your reasoning, and 2. Outputting a finalized graph json.
+""")
+        full_prompt = (HumanMessage(prompt), instructions)
         
         return self.llm.invoke(full_prompt).content
 
@@ -183,15 +200,16 @@ For a statistics topic, a branch might ask: “What kind of outcome is being exp
 
         prompt = HumanMessage(f"""
                     Generate a knowledge graph using the following specs given by a colleague. 
-                    Use the generate_node and generate_relation tools in order to do this.
+                    Use the generate_node and generate_relation functions in order to do this.
                     Please be exact and complete the whole graph.
-                    Ensure you generate all nodes and all relations.
+                    You have one 'turn' in the conversation to do this. Ensure that you generate ALL nodes and relationships before ending your response.
                     Here is the conversation the schema is found in: {schema}
 """)
 
         print("[green] Generating Nodes... [/green]")
 
         response = llm_tools.invoke([prompt])
+        print(response.content)
 
         for tool_call in response.tool_calls:
             tool_name = getattr(tool_call, "name", None)
@@ -212,7 +230,8 @@ For a statistics topic, a branch might ask: “What kind of outcome is being exp
     def generate_graph(self, prompt: str):
         try:
             self.driver.execute_query("MATCH (n) DETACH DELETE n")
-            json_schema = self._gen_json(prompt)
+            expert_thoughts = self._gen_thought_process(prompt)
+            json_schema = self._gen_json(prompt, expert_thoughts)
             self._json_to_graph(json_schema)
             print("[blue bold] Code complete! [/blue bold]")
             self.schema = json_schema
@@ -245,11 +264,10 @@ For a statistics topic, a branch might ask: “What kind of outcome is being exp
         except Exception as e:
             print(f"Error regenerating graph: {e}")
 
-
-    def generate_traversals(self, ids: list[Sequence]):
+    def generate_traversals(self, ids: list[str]):
         traversals = []
-        for id_list in ids:
-            traversals.append(self.sampler.sample_from_id_list(id_list))
+        for id in ids:
+            traversals.append(self.sampler.sample_path_from_leaf(id))
         if len(traversals) == 1:
             return traversals[0]
         elif len(traversals) > 1:
@@ -304,7 +322,9 @@ For a statistics topic, a branch might ask: “What kind of outcome is being exp
         prompt = f"""
                     You are mapping a student's response to this knowledge graph schema. 
                     Use the select_path tool to input the sequence of node id's the student most likely followed.
-                    If the student's response cannot be mapped to the graph, you may call select_path with a sequence of length 1, which will return an N/A traversal.
+                    If the student has illogical responses or gaps in logic, map it to the null node.
+                    Follow whatever path the student took, even if it is illogical (use the NULL node to your advantage).
+
                     Here is the question the student is answering: {question}
 
                     Here is the knowledge graph to work with: {self.schema}
@@ -312,6 +332,7 @@ For a statistics topic, a branch might ask: “What kind of outcome is being exp
                     Here is the student's answer: {answer}
 
                     If necessary, you may call select_path multiple times (for example, if the student went through multiple branches of a tree in their answer. If a student talks about plotting data and cleaning data, and those are both trees in the schema, please select multiple branches).
+                    HOWEVER! Please make sure you are mapping the ACTUAL train of thought of the student. If they got the right answer, but didn't explain it (or had faulty reasoning), don't give them credit for it! Send it to the null node instead.
                 """
 
         print("[green bold]Grading response...[/green bold]")
@@ -334,6 +355,7 @@ For a statistics topic, a branch might ask: “What kind of outcome is being exp
 
         print("[blue]Calculating scores...[/blue]")
         responses = self._calculate_scores(traversal, traversal_key)
+        self.driver.execute_query('MATCH (n:TreeNode {id: "-n1"}) DETACH DELETE n')
         return responses
 
     def _calculate_scores(self, traversal, key):

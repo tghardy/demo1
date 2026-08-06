@@ -12,15 +12,15 @@ st.set_page_config(layout="wide")
 
 # 2. Setup Secrets & LLM
 load_dotenv()
-URI = st.secrets["NEO4J_URI"]
-USERNAME = st.secrets["NEO4J_USERNAME"]
-PASSWORD = st.secrets["NEO4J_PASSWORD"]
+URI = os.getenv("NEO4J_URI")
+USERNAME = os.getenv("NEO4J_USERNAME")
+PASSWORD = os.getenv("NEO4J_PASSWORD")
 AUTH = (USERNAME, PASSWORD)
 
 OLLAMA_HOST = "https://ollama.com"
-API_KEY = st.secrets["OLLAMA_API_KEY"]
+API_KEY = os.getenv("OLLAMA_API_KEY")
 
-llm = ChatOllama(model="glm-5.2", base_url=OLLAMA_HOST, headers={
+llm = ChatOllama(model="glm-5.2", reasoning=True, base_url=OLLAMA_HOST, headers={
     "Authorization": f'Bearer {API_KEY}',
     "Content-Type": "application/json"
 })
@@ -127,8 +127,6 @@ if st.button("Generate Graph Schema") and prompt:
 # -------------------------------------------------------------------
 # State Management
 # -------------------------------------------------------------------
-if "list_of_lists" not in st.session_state:
-    st.session_state.list_of_lists = []
 if "current_group" not in st.session_state:
     st.session_state.current_group = []
 
@@ -143,75 +141,37 @@ if nodes_data:
     agraph_nodes, agraph_edges, config = create_agraph(nodes_data, edges_data)
     clicked_node_id = agraph(nodes=agraph_nodes, edges=agraph_edges, config=config)
 
-    if clicked_node_id:
-        st.info(f"Selected Node ID from Graph: `{clicked_node_id}`")
-        if st.button(f"Add `{clicked_node_id}` to Current Group"):
-            if clicked_node_id not in st.session_state.current_group:
-                st.session_state.current_group.append(clicked_node_id)
-                st.rerun()
-
 st.divider()
 
 # -------------------------------------------------------------------
 # List Builder
 # -------------------------------------------------------------------
-st.subheader("Configure Node Groups (List of Lists)")
-col1, col2 = st.columns([2, 1])
+st.subheader("Problem Generation")
 
-with col1:
-    all_node_ids = list(nodes_data.keys()) if nodes_data else []
-    st.session_state.current_group = st.multiselect(
-        "Build current group of Node IDs:",
-        options=all_node_ids,
-        default=st.session_state.current_group,
-        key="multiselect_group",
-    )
 
-    btn_col1, btn_col2, btn_col3 = st.columns(3)
-    with btn_col1:
-        if st.button("➕ Save Group", type="primary"):
-            if st.session_state.current_group:
-                st.session_state.list_of_lists.append(list(st.session_state.current_group))
-                st.session_state.current_group = []
-                st.rerun()
-            else:
-                st.warning("Current group is empty!")
-    with btn_col2:
-        if st.button("🧹 Clear Active Group"):
-            st.session_state.current_group = []
-            st.rerun()
-    with btn_col3:
-        if st.button("🗑️ Reset All Groups"):
-            st.session_state.list_of_lists = []
-            st.session_state.current_group = []
-            st.rerun()
-
-with col2:
-    st.write("### Active Structure:")
-    st.code(f"current_group = {st.session_state.current_group}", language="python")
-    st.code(f"list_of_lists = {st.session_state.list_of_lists}", language="python")
-
-st.divider()
+all_node_ids = list(nodes_data.keys()) if nodes_data else []
+st.session_state.current_group = st.multiselect(
+    "Enter terminal node ID(s) to generate problems from:",
+    options=all_node_ids,
+    default=st.session_state.current_group,
+    key="multiselect_group",
+)
 
 # -------------------------------------------------------------------
 # Problem Generation & Grading
 # -------------------------------------------------------------------
-st.subheader("Problem Generation")
 
 if "generated_problem" not in st.session_state:
     st.session_state.generated_problem = None
 if "traversals" not in st.session_state:
     st.session_state.traversals = None
 
-if st.button("Generate Problem from Groups"):
-    if not st.session_state.list_of_lists:
-        st.error("Please add at least one group of node IDs above first.")
-    else:
-        with st.spinner("Building problem..."):
-            ts = g.generate_traversals(st.session_state.list_of_lists)
-            problem = g.generate_problem(ts)["problem"]
-            st.session_state.generated_problem = problem
-            st.session_state.traversals = ts
+if st.button("Generate Problem"):
+    with st.spinner("Building problem..."):
+        ts = g.generate_traversals(st.session_state.current_group)
+        problem = g.generate_problem(ts)["problem"]
+        st.session_state.generated_problem = problem
+        st.session_state.traversals = ts
 
 if st.session_state.generated_problem:
     st.markdown(st.session_state.generated_problem)

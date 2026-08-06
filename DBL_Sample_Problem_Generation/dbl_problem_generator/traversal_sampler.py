@@ -267,18 +267,18 @@ class Neo4jTraversalSampler(TraversalSampler):
                 question_text=question_node.get("content", ""),
                 type=question_node.get("type", ""),
             )
-            
-            # STRICTLY rely on 'type'
-            if isinstance(relationship, dict):
-                edge_type = relationship.get("type", "")
-            else:
-                # Check for a property named 'type', fallback to structural Neo4j relationship type
-                edge_type = relationship.get("type") or getattr(relationship, "type", "")
 
+          # Get the structural type for the rel_type field (e.g., "HAS_CHILD")
+            edge_type = relationship.get("type") if isinstance(relationship, dict) else getattr(relationship, "type", "")
             rel_type = str(edge_type).strip()
+            print(f"DEBUG edge properties: {dict(relationship)}")
             
-            # THE FIX: Assign the relationship type directly as the answer text!
-            answer_text = rel_type 
+            # Get the actual content property of the edge for the text (fallback to type if missing)
+            if isinstance(relationship, dict):
+                answer_text = relationship.get("content", rel_type)
+            else:
+                answer_text = relationship.get("content") or rel_type
+
 
             answer = TraversalAnswer(answer_text=answer_text)
             steps.append(
