@@ -296,20 +296,18 @@ Proceed with 1. DRAFTING a graph in your reasoning, and 2. Outputting a finalize
         @tool
         def select_path(ids: Sequence):
             """
-            Generates a Traversal object to be graded. Takes in node ids in order. Returns 'N/A' if the length of the sequence is 1.
+            Generates a Traversal object to be graded. Takes in node ids in order.
             If an id is '-n1', it is treated as a NULL node that connects both ways to every other node in the graph. This is useful to represent logical gaps or inconsistencies.
 
             Args:
                 ids: list, contains node ids in order of student logic
 
-            Returns: 'N/A' or a traversal object.
+            Returns: a traversal object.
             """
             return ids
         
         def _select_path(ids: Sequence):
 
-            if len(ids) == 1:
-                return "N/A"
             try:
                 r = self.sampler.sample_from_id_list(ids)
                 return r
